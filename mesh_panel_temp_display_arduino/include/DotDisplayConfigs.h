@@ -12,4 +12,5 @@ constexpr DotDisplayConfig kNcaseM2Config = {
     9.0f, // yYSpacing
     2, // digitCount
     'C', // unitSuffix
+    false, // invertDisplay
 };

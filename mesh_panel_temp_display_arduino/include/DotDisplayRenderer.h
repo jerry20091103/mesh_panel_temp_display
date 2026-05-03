@@ -14,6 +14,7 @@ struct DotDisplayConfig
     float yYSpacing;
     uint8_t digitCount;
     char unitSuffix;
+    bool invertDisplay;
 };
 
 class DotDisplayRenderer
@@ -23,6 +24,9 @@ public:
     /// @param display Reference to the U8G2 display object
     /// @param config Display configuration with dot size and spacing parameters
     DotDisplayRenderer(U8G2 &display, const DotDisplayConfig &config);
+
+    /// Replace the active display configuration.
+    void setConfig(const DotDisplayConfig &config);
 
     /// Initialize the display and prepare for rendering.
     /// Should be called once in setup() after creating the renderer instance.

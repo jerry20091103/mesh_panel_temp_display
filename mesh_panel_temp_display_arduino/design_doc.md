@@ -31,15 +31,43 @@ The display is powered by a MCU with Arduino that reads the temperature data fro
 ### Extra Parameters
 - `refreshInterval`: The time interval (in milliseconds) for refreshing the display with new temperature data
 - `invertDisplay`: A boolean flag to determine whether to invert the display colors (white on black or black on white)
-- `digitCount`: Choose how many digit slots to display on the OLED. This is currently hard coded in the firmware but will be sent from the PC software later.
-- `unitSuffix`: Optional `C` or `F` suffix shown next to the last digit. This is also intended to be sent from the PC software later.
-- Note: all the above parameters are sent to the display from the PC software, the display just receives the parameters and the temperature number to show.
+- `digitCount`: Choose how many digit slots to display on the OLED. This is now configurable through the serial protocol.
+- `unitSuffix`: Optional `C`, `F`, or blank suffix shown next to the last digit. This is now configurable through the serial protocol.
+- `invertDisplay`: Choose whether the OLED background is black (`0`) or white (`1`). This is now configurable through the serial protocol.
+- Note: the display receives configuration values and temperature updates from the PC software.
 ### Communication Protocol
-- UART Serial
-- Allows realtime update of the configuration parameters and the temperature data
-- Should have a simple watchdog mechanism to detect communication loss and display an error state
-- The parameters are not stored in the MCU, they need to be sent from the PC software every time the display is powered on.
-- Details: TBD (will be determined when during software design)
+- **Transport**: UART Serial at 9600 baud (native USB on Arduino Micro)
+- **Format**: Text-based commands with format `COMMAND:VALUE\n`
+- **Reliability**: ACK handshake mechanism ensures no commands are lost during rapid sequences
+  - MCU sends `ACK:OK\n` after successfully parsing a command
+  - MCU sends `ACK:ERROR\n` if command format is invalid or parsing fails
+  - PC should wait for ACK response before sending the next command
+
+**Implemented Commands:**
+- `TEMP:XXX` - Set temperature display value in tenths of degrees
+  - Example: `TEMP:339\n` displays 33.9 degrees
+  - MCU responds: `ACK:OK\n`
+- `DOTDIAMETER:X` - Set the dot diameter in pixels
+- `STARTX:X` - Set the X coordinate of the first digit
+- `STARTY:X` - Set the Y coordinate of the first digit
+- `XXSPACING:X.X` - Set horizontal dot spacing within a digit
+- `XYSPACING:X.X` - Set vertical dot spacing within a digit
+- `YXSPACING:X.X` - Set horizontal row spacing within a digit
+- `YYSPACING:X.X` - Set vertical row spacing within a digit
+- `DIGITCOUNT:N` - Set the digit count to 2, 3, or 4
+- `SUFFIX:C|F|` - Set the suffix to `C`, `F`, or blank
+- `INVERT:0|1` - Set the display to normal or inverted colors
+
+**MCU Responses:**
+- `ACK:OK\n` - Command processed successfully; PC may send next command
+- `ACK:ERROR\n` - Command parsing failed; PC should retry or log error
+- Status messages (e.g., "Temperature display initialized...")
+- Debug messages (prefixed with `[DEBUG]`) when enabled
+
+**Parameter Storage:**
+- Configuration parameters (dotSize, spacing, digitCount, unitSuffix, invertDisplay) are not persisted in MCU flash
+- PC software must send all parameters after each power-up or MCU reset
+- Temperature updates can occur any time; MCU maintains live mode once first TEMP command received
 ### Hardware
 - MCU: Arduino Micro (ATmega32u4)
 - Display: 128x64 OLED (SH1106 via I2C)

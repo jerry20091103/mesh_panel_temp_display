@@ -29,6 +29,11 @@ DotDisplayRenderer::DotDisplayRenderer(U8G2 &display, const DotDisplayConfig &co
 {
 }
 
+void DotDisplayRenderer::setConfig(const DotDisplayConfig &config)
+{
+    config_ = config;
+}
+
 void DotDisplayRenderer::begin()
 {
     display_.begin();
@@ -39,7 +44,13 @@ void DotDisplayRenderer::begin()
 void DotDisplayRenderer::renderTenths(uint16_t tenths)
 {
     display_.clearBuffer();
-    display_.setDrawColor(1);
+    if (config_.invertDisplay) {
+        display_.setDrawColor(1);
+        display_.drawBox(0, 0, display_.getDisplayWidth(), display_.getDisplayHeight());
+        display_.setDrawColor(0);
+    } else {
+        display_.setDrawColor(1);
+    }
 
     uint8_t digitCount = config_.digitCount;
     if (digitCount < 2) {
