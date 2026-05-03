@@ -3,7 +3,7 @@
 The Mesh Panel Temperature Display is a mini hardware display designed to show the current PC temperature through a mesh panel. It utilizes a small OLED screen to provide real-time temperature readings. The numbers are displayed with small dots through the mesh, creating a seven-segment like appearance.
 The display is powered by a MCU with Arduino that reads the temperature data from the PC through a USB connection. A companion software on the PC retrieves the temperature data and sends it to the display.
 ## Features
-- Real-time temperature display through a mesh panel, up to 3 digits (xx.x °C or xxx °C)
+- Real-time temperature display through a mesh panel, with 2 to 4 digit slots and an optional unit suffix (C/F)
 - Configurable display "dots" to create a seven-segment like appearance. Can configure size and position of the dots to match any mesh panel pattern.
 - Simple USB serial communication between the PC and the display
 - Able to choose CPU/GPU or more temperature sources to display. Can also do a combined max of several temperature sources. (This is only on the PC software side, the display just receives a number to show)
