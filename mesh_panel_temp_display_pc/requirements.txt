@@ -1,0 +1,5 @@
+pyserial>=3.5
+psutil>=6.0.0
+pystray>=0.19.5
+pillow>=10.0.0
+requests>=2.31.0
