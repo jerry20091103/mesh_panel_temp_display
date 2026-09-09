@@ -78,6 +78,7 @@ class AppController:
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
 
         self.sources_list: tk.Listbox | None = None
+        self.notebook: ttk.Notebook | None = None
         self.preview: DigitPreview | None = None
         self._last_sent_suffix: str = ""
         self._active_source_ids: list[str] = []
@@ -125,13 +126,14 @@ class AppController:
         self.test_value_var = tk.StringVar(value="339")
         self._preview_after_id: int | None = None
 
-        notebook = ttk.Notebook(top)
-        notebook.pack(fill="both", expand=True)
+        self.notebook = ttk.Notebook(top)
+        self.notebook.pack(fill="both", expand=True)
 
-        general = ttk.Frame(notebook, padding=10)
-        display = ttk.Frame(notebook, padding=10)
-        notebook.add(general, text="General")
-        notebook.add(display, text="Display Tuning")
+        general = ttk.Frame(self.notebook, padding=10)
+        display = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(general, text="General")
+        self.notebook.add(display, text="Display Tuning")
+        self.notebook.bind("<<NotebookTabChanged>>", self._on_notebook_tab_changed)
 
         self._build_general_tab(general)
         self._build_display_tab(display)
@@ -281,10 +283,44 @@ class AppController:
         )
 
     def _selected_source_ids(self) -> list[str]:
+        if self.sources_list is None:
+            return list(self.settings.selected_source_ids)
+
         selected_ids = [self.sources[i].source_id for i in self.sources_list.curselection()]
         if not selected_ids and self.sources:
             selected_ids = [self.sources[0].source_id]
         return selected_ids
+
+    def _sync_sources_list_selection(self) -> None:
+        if self.sources_list is None or not self.sources:
+            return
+
+        saved_ids = [source_id for source_id in self.settings.selected_source_ids if any(src.source_id == source_id for src in self.sources)]
+        current_ids = [self.sources[idx].source_id for idx in self.sources_list.curselection() if 0 <= idx < len(self.sources)]
+        if current_ids and not saved_ids:
+            saved_ids = current_ids
+        if not saved_ids:
+            saved_ids = [self.sources[0].source_id]
+
+        selection_set = set(saved_ids)
+        self.sources_list.selection_clear(0, tk.END)
+        for idx, src in enumerate(self.sources):
+            if src.source_id in selection_set:
+                self.sources_list.selection_set(idx)
+
+        restored_ids = [self.sources[idx].source_id for idx in self.sources_list.curselection() if 0 <= idx < len(self.sources)]
+        if not restored_ids:
+            restored_ids = [self.sources[0].source_id]
+
+        self._active_source_ids = list(restored_ids)
+        self.settings.selected_source_ids = list(restored_ids)
+        self._active_suffix = self._resolve_suffix_for_source_ids(restored_ids)
+        self.suffix_var.set(self._active_suffix)
+        self._queue_suffix_if_needed(self._active_suffix)
+
+    def _on_notebook_tab_changed(self, _event: object = None) -> None:
+        if self.sources_list is not None:
+            self._sync_sources_list_selection()
 
     def _resolve_suffix_for_source_ids(self, source_ids: list[str]) -> str:
         for source_id in source_ids:
@@ -374,8 +410,7 @@ class AppController:
             self.status_var.set("No sensors discovered. CPU sensors may require admin/hardware APIs.")
         else:
             self.status_var.set(f"Discovered {len(self.sources)} source(s)")
-            if not self.sources_list.curselection():
-                self.sources_list.selection_set(0)
+            self._sync_sources_list_selection()
             self._on_source_selection_changed()
             self._active_source_ids = list(self._selected_source_ids())
             self._active_suffix = self._resolve_suffix_for_source_ids(self._active_source_ids)
