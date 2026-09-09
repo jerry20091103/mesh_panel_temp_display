@@ -36,11 +36,10 @@ class TemperatureSource:
 
 class SettingsStore:
     def __init__(self) -> None:
-        app_data = os.environ.get("APPDATA", str(Path.home()))
+        app_data = os.environ.get("APPDATA", str(Path.home())).strip()
         self._folder = Path(app_data) / APP_FOLDER_NAME
         self._file = self._folder / "settings.json"
 
-    @property
     def path(self) -> Path:
         return self._file
 
@@ -165,7 +164,7 @@ class TemperatureProvider:
             "--format=csv,noheader,nounits",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1.5, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1.5, check=True, creationflags=subprocess.CREATE_NO_WINDOW)
         except (FileNotFoundError, OSError, subprocess.SubprocessError):
             return []
 
@@ -191,7 +190,7 @@ class TemperatureProvider:
             "--format=csv,noheader,nounits",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1.0, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1.0, check=True, creationflags=subprocess.CREATE_NO_WINDOW)
         except (FileNotFoundError, OSError, subprocess.SubprocessError):
             return None
         text = result.stdout.strip()

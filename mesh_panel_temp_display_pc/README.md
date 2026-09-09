@@ -1,60 +1,54 @@
-# Mesh Panel Temperature Display (PC App)
+# Mesh Panel Temperature Display (PC Application)
 
-Windows tray companion that reads PC temperatures and sends commands to the Arduino display via serial UART.
+A Windows tray utility that monitors your PC's hardware temperatures and transmits the data to a dedicated Arduino-based display via a serial connection.
 
-## Current implementation status
+## Features
+- **Tray Integration:** Runs in the system tray with a simple settings window.
+- **Real-time Updates:** Automatically refreshes temperature data (CPU, GPU, etc.) at a configurable interval.
+- **Configurable Display:** Easily adjust your display settings (number of digits, dot size, spacing, and inversion) via the app.
+- **Auto-Discovery:** Automatically detects the Arduino connected via USB.
 
-- Tray app with settings window and background loop
-- Serial ACK queue for `COMMAND:VALUE\n` protocol
-- Config command sender for all firmware parameters
-- TEMP live updates (single or max-selected mode)
-- Sensor discovery:
-  - psutil temperature sensors
-  - NVIDIA GPU temps via `nvidia-smi`
-- Per-user settings persistence in `%APPDATA%/MeshPanelTempDisplay/settings.json`
-- Optional per-user startup registration in Windows Run key
-- One-digit "8" preview for mesh tuning geometry
+## Prerequisites
+Before running the application, you must set up the system monitor:
 
-## Run in development
+1. **Install Libre Hardware Monitor**:
+   - Download and install [Libre Hardware Monitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor).
+   - Open the application.
+   - Go to **Options > Remote Web Server > Run**.
+   - (Optional) Check "Run on Windows Startup" for a seamless experience.
+2. **Requirement**: Ensure the internal web server is accessible at `http://localhost:8085/data.json`.
 
-Before launching the PC app, install Libre Hardware Monitor and enable its web server:
+## Installation & Setup
 
-1. Install and run Libre Hardware Monitor.
-2. In Libre Hardware Monitor, enable the Remote Web Server option.
-    - Go to Options > Remote Web Server > Run
-    - Also check "Run on Windows Startup" if you want it to start automatically.
-3. Make sure the web server is running at `http://localhost:8085/data.json`.
+1. **Clone/Download** this repository.
+2. **Navigate** to the `mesh_panel_temp_display_pc` folder.
+3. **Install Python Dependencies**:
+   ```powershell
+   pip install -r requirements.txt
+   ```
+4. **Run the Application**:
+   - **Standard mode:** `python main.py`
+   - **Minimized to tray:** `python main.py --minimized`
+5. **Configure the Application:**
+  1. General Settings: 
+      - Open the application's "General" tab.
+      - Set update interval, serial port (optional), and other preferences.
+      - Select temperature source (CPU, GPU, or combined max). Then click "Save".
+  2. Display Tuning:
+      - Open the application's "Display Tuning" tab.
+      - Adjust the number of digits, dot size, spacing, and inversion settings.
+      - A preview will be shown in real-time. Click "Send Config" to save and transmit the settings to the Arduino.
 
-1. Install dependencies:
+## Startup & Integration
+- **Auto-Start:** You can enable the "Start with Windows" option directly in the "General" settings tab of the application UI.
+- **Standalone Executable:** To package the application into a single executable file (which simplifies distribution):
+  ```powershell
+  pyinstaller --noconfirm --onefile --windowed --name MeshPanelTemp main.py
+  ```
+  After packaging, the application can be placed in your startup folder or configured to launch on login.
 
-```powershell
-pip install -r requirements.txt
-```
-
-2. Launch:
-
-```powershell
-python main.py
-```
-
-3. Launch minimized to tray:
-
-```powershell
-python main.py --minimized
-```
-
-## Packaging target
-
-Use PyInstaller for a single-file executable:
-
-```powershell
-pyinstaller --noconfirm --onefile --windowed --name MeshPanelTemp main.py
-```
-
-After packaging, startup registration points to the executable with `--minimized`.
-
-## Notes
-
-- Arduino firmware serial protocol uses 9600 baud and ACK handshake.
-- Auto-port detects common Arduino Micro VID/PID and fallback keyword matching.
-- LibreHardwareMonitor is used as the temperature source provider; keep its web server enabled while the PC app is running.
+## Technical Notes
+- **Serial Protocol:** Uses 9600 baud with an ACK handshake.
+- **Ports:** Automatically detects Arduino Micro (VID/PID) or matches by serial name.
+- **Configuration:** User settings are saved in `%APPDATA%/MeshPanelTempDisplay/settings.json`.
+; keep its web server enabled while the PC app is running.

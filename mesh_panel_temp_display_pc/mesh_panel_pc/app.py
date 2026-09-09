@@ -17,6 +17,40 @@ from .models import AppSettings, DisplayConfig, SensorMode
 from .preview import DigitPreview
 from .services import SerialBridge, SettingsStore, StartupManager, TemperatureProvider, TemperatureSource
 
+class Spinbox(ttk.Frame):
+    def __init__(self, parent: ttk.Frame, var: tk.StringVar, step: float, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.var = var
+        self.step = step
+        
+        self.entry = ttk.Entry(self, textvariable=var, width=10)
+        self.entry.grid(row=0, column=1, sticky="ew")
+        
+        self.minus_btn = tk.Button(self, text="-", command=self._decrement, width=2)
+        self.minus_btn.grid(row=0, column=0, padx=(0, 2))
+        
+        self.plus_btn = tk.Button(self, text="+", command=self._increment, width=2)
+        self.plus_btn.grid(row=0, column=2, padx=(2, 0))
+
+    def _format_val(self, val: float) -> str:
+        # If the value is an integer (e.g. 4.0), return "4", otherwise "4.1"
+        if val == int(val):
+            return str(int(val))
+        return str(round(val, 2))
+
+    def _decrement(self):
+        try:
+            current = float(self.var.get())
+            self.var.set(self._format_val(current - self.step))
+        except ValueError:
+            pass
+
+    def _increment(self):
+        try:
+            current = float(self.var.get())
+            self.var.set(self._format_val(current + self.step))
+        except ValueError:
+            pass
 
 class AppController:
     def __init__(self, start_minimized: bool) -> None:
@@ -154,21 +188,23 @@ class AppController:
 
     def _build_display_tab(self, parent: ttk.Frame) -> None:
         fields = [
-            ("dotDiameter", self.dot_diameter_var),
-            ("startX", self.start_x_var),
-            ("startY", self.start_y_var),
-            ("xXSpacing", self.xx_spacing_var),
-            ("xYSpacing", self.xy_spacing_var),
-            ("yXSpacing", self.yx_spacing_var),
-            ("yYSpacing", self.yy_spacing_var),
-            ("digitCount (2/3/4)", self.digit_count_var),
-            ("suffix (auto)", self.suffix_var),
+            ("dotDiameter", self.dot_diameter_var, 1),
+            ("startX", self.start_x_var, 0.1),
+            ("startY", self.start_y_var, 0.1),
+            ("xXSpacing", self.xx_spacing_var, 0.1),
+            ("xYSpacing", self.xy_spacing_var, 0.1),
+            ("yXSpacing", self.yx_spacing_var, 0.1),
+            ("yYSpacing", self.yy_spacing_var, 0.1),
+            ("digitCount (2/3/4)", self.digit_count_var, 1),
+            ("suffix (auto)", self.suffix_var, None),
         ]
-        for idx, (label, var) in enumerate(fields):
+        for idx, (label, var, step) in enumerate(fields):
             ttk.Label(parent, text=label).grid(row=idx, column=0, sticky="w")
-            entry = ttk.Entry(parent, textvariable=var, width=12)
-            if label.startswith("suffix"):
+            if step is None:
+                entry = ttk.Entry(parent, textvariable=var, width=12)
                 entry.state(["readonly"])
+            else:
+                entry = Spinbox(parent, var, step)
             entry.grid(row=idx, column=1, sticky="w", padx=(10, 0), pady=(3, 3))
 
         ttk.Checkbutton(parent, text="Invert display", variable=self.invert_var).grid(row=9, column=1, sticky="w", padx=(10, 0), pady=(4, 8))
