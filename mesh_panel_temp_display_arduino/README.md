@@ -12,10 +12,10 @@ This repository contains the firmware for the Arduino Micro, responsible for han
 The project uses **PlatformIO** for its build system. 
 
 1. **Install PlatformIO**:
-   - Use the PlatformIO Core extension in VS Code. (Recommended)
+   - Install the PlatformIO IDE extension in VS Code. (Recommended)
    - Or install the PlatformIO Core in your Python environment: `pip install -lt platformio`
 2. **Build and Upload**:
-    - In the VSCode GUI:
+    - In the VSCode GUI (Recommended):
         - Open the `mesh_panel_temp_display_arduino` folder in VSCode.
         - Use the PlatformIO toolbar to build and upload the firmware to your Arduino Micro.
     - With terminal:
