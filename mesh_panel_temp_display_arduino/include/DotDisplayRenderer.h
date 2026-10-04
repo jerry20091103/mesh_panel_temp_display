@@ -38,6 +38,13 @@ public:
     /// @param tenths The value to display in tenths (e.g., 235 = 23.5 degrees)
     void renderTenths(uint16_t tenths);
 
+    /// Set display power state. If false, turns off OLED display completely (power-save mode).
+    /// If true, disables power-save mode so the display can be updated.
+    void setDisplayPower(bool on);
+
+    /// Check if display is currently powered on.
+    bool isDisplayOn() const;
+
 private:
     static constexpr uint8_t kDigitColumns = 3;   ///< Width of each digit in columns
     static constexpr uint8_t kDigitRows = 5;      ///< Height of each digit in rows
@@ -45,6 +52,7 @@ private:
 
     U8G2 &display_;           ///< Reference to the display object
     DotDisplayConfig config_; ///< Display layout configuration (spacing, dot size, etc.)
+    bool isDisplayOn_;        ///< Whether the display is powered on and active
 
     /// Draw a single digit (0-9) at the specified origin position.
     /// Uses the kDigitBitmaps lookup table to determine which dots to draw.

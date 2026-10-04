@@ -14,6 +14,7 @@ import pystray
 from PIL import Image, ImageDraw
 
 from .models import AppSettings, DisplayConfig, SensorMode
+from .power import WindowsPowerService
 from .preview import DigitPreview
 from .services import SerialBridge, SettingsStore, StartupManager, TemperatureProvider, TemperatureSource
 
@@ -80,9 +81,11 @@ class AppController:
         self.sources_list: tk.Listbox | None = None
         self.notebook: ttk.Notebook | None = None
         self.preview: DigitPreview | None = None
+        self.power_btn: ttk.Button | None = None
         self._last_sent_suffix: str = ""
         self._active_source_ids: list[str] = []
         self._active_suffix: str = "C"
+        self._display_on: bool = True
 
         self._build_ui()
         self._apply_settings_to_ui()
@@ -91,7 +94,15 @@ class AppController:
         self._create_tray_icon()
 
         self.serial.start()
+        self.serial.queue_power(True)
         self.serial.queue_config(self.settings.display)
+
+        self.power_service = WindowsPowerService(
+            on_suspend=self._on_pc_suspend,
+            on_resume=self._on_pc_resume,
+            on_shutdown=self._on_pc_shutdown,
+        )
+        self.power_service.start()
 
         self.refresh_sources()
         self._start_temperature_loop()
@@ -172,6 +183,8 @@ class AppController:
         btn_row.grid(row=row, column=1, sticky="w", padx=(10, 0), pady=(8, 0))
         ttk.Button(btn_row, text="Refresh Sources", command=self.refresh_sources).pack(side="left")
         ttk.Button(btn_row, text="Apply + Save", command=self.apply_and_save).pack(side="left", padx=(8, 0))
+        self.power_btn = ttk.Button(btn_row, text="Turn Display OFF", command=self.toggle_display_power)
+        self.power_btn.pack(side="left", padx=(8, 0))
 
         row += 1
         ttk.Checkbutton(parent, text="Start with Windows", variable=self.auto_start_var).grid(
@@ -451,6 +464,10 @@ class AppController:
         def worker() -> None:
             while True:
                 try:
+                    if not self._display_on:
+                        time.sleep(0.5)
+                        continue
+
                     selected_ids = list(self._active_source_ids)
                     if not selected_ids:
                         selected_ids = list(self.settings.selected_source_ids)
@@ -520,6 +537,7 @@ class AppController:
 
         menu = pystray.Menu(
             pystray.MenuItem("Open", self._on_tray_open),
+            pystray.MenuItem("Toggle Display", self._on_tray_toggle_power),
             pystray.MenuItem("Send Config", self._on_tray_send_config),
             pystray.MenuItem("Quit", self._quit_app),
         )
@@ -533,9 +551,48 @@ class AppController:
     def _on_tray_send_config(self, _icon: object, _item: object) -> None:
         self.tray_callback_queue.put(self.send_config_now)
 
+    def _on_tray_toggle_power(self, _icon: object, _item: object) -> None:
+        self.tray_callback_queue.put(self.toggle_display_power)
+
+    def toggle_display_power(self) -> None:
+        self._display_on = not self._display_on
+        if self._display_on:
+            self.serial.send_power_immediate(True)
+            self.serial.queue_config(self.settings.display)
+            self.status_var.set("Display turned ON")
+        else:
+            self.serial.send_power_immediate(False)
+            self.status_var.set("Display turned OFF")
+        self._update_power_button_ui()
+
+    def _update_power_button_ui(self) -> None:
+        if self.power_btn is not None:
+            self.power_btn.config(text="Turn Display OFF" if self._display_on else "Turn Display ON")
+
+    def _on_pc_suspend(self) -> None:
+        self._display_on = False
+        self._status_from_worker("PC sleeping: Display turned off")
+        self.serial.send_power_immediate(False)
+        self.tray_callback_queue.put(self._update_power_button_ui)
+
+    def _on_pc_resume(self) -> None:
+        time.sleep(0.5)
+        self._display_on = True
+        self._status_from_worker("PC resumed: Display restored")
+        self.serial.send_power_immediate(True)
+        self.serial.queue_config(self.settings.display)
+        self.tray_callback_queue.put(self._update_power_button_ui)
+
+    def _on_pc_shutdown(self) -> None:
+        self._display_on = False
+        self.serial.send_power_immediate(False)
+
     def _quit_app(self, _icon: object = None, _item: object = None) -> None:
         if self._tray_icon:
             self._tray_icon.stop()
+        if hasattr(self, "power_service"):
+            self.power_service.stop()
+        self.serial.send_power_immediate(False)
         self.serial.stop()
         self.root.after(0, self.root.destroy)
 

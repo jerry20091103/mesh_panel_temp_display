@@ -213,8 +213,10 @@ class SerialBridge:
         self._queue: queue.Queue[tuple[str, int]] = queue.Queue()
         self._latest_temp_tenths: int | None = None
         self._lock = threading.Lock()
+        self._io_lock = threading.Lock()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._is_sleeping = False
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -234,7 +236,51 @@ class SerialBridge:
 
     def queue_temp(self, tenths: int) -> None:
         with self._lock:
+            if self._is_sleeping:
+                return
             self._latest_temp_tenths = max(0, tenths)
+
+    def is_sleeping(self) -> bool:
+        with self._lock:
+            return self._is_sleeping
+
+    def queue_power(self, on: bool) -> None:
+        with self._lock:
+            self._is_sleeping = not on
+            if not on:
+                self._latest_temp_tenths = None
+        self._queue.put((f"POWER:{1 if on else 0}", 3))
+
+    def send_power_immediate(self, on: bool, timeout: float = 0.5) -> bool:
+        with self._lock:
+            self._is_sleeping = not on
+            if not on:
+                self._latest_temp_tenths = None
+                preserved = []
+                while not self._queue.empty():
+                    try:
+                        item = self._queue.get_nowait()
+                        if not item[0].startswith("TEMP:"):
+                            preserved.append(item)
+                    except queue.Empty:
+                        break
+                for item in preserved:
+                    self._queue.put(item)
+
+        with self._io_lock:
+            if on:
+                for _ in range(3):
+                    if self._serial and self._serial.is_open:
+                        break
+                    self._connect()
+                    if not self._serial or not self._serial.is_open:
+                        time.sleep(0.2)
+
+            cmd = f"POWER:{1 if on else 0}"
+            success = self._send_with_ack(cmd, deadline_seconds=timeout)
+            if not success and on:
+                self._queue.put((cmd, 3))
+            return success
 
     def queue_config(self, config: DisplayConfig) -> None:
         lines = [
@@ -264,7 +310,8 @@ class SerialBridge:
     def _worker(self) -> None:
         while not self._stop.is_set():
             if not self._serial or not self._serial.is_open:
-                self._connect()
+                with self._io_lock:
+                    self._connect()
                 if not self._serial:
                     time.sleep(1.2)
                     continue
@@ -274,7 +321,7 @@ class SerialBridge:
                 command = self._queue.get_nowait()
             except queue.Empty:
                 with self._lock:
-                    if self._latest_temp_tenths is not None:
+                    if not self._is_sleeping and self._latest_temp_tenths is not None:
                         temp = self._latest_temp_tenths
                         self._latest_temp_tenths = None
                         command = (f"TEMP:{temp}", 2)
@@ -284,14 +331,16 @@ class SerialBridge:
                 continue
 
             line, retries = command
-            if not self._send_with_ack(line):
+            with self._io_lock:
+                success = self._send_with_ack(line)
+            if not success:
                 retries -= 1
                 if retries > 0:
                     self._queue.put((line, retries))
                 else:
                     self._on_status(f"Command failed: {line}")
 
-    def _send_with_ack(self, line: str) -> bool:
+    def _send_with_ack(self, line: str, deadline_seconds: float = 0.35) -> bool:
         if not self._serial:
             return False
         payload = f"{line}\n".encode("ascii", errors="ignore")
@@ -303,7 +352,7 @@ class SerialBridge:
             self._disconnect()
             return False
 
-        deadline = time.monotonic() + 0.35
+        deadline = time.monotonic() + deadline_seconds
         while time.monotonic() < deadline:
             response = self._read_line()
             if response is None:

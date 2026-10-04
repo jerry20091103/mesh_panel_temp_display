@@ -123,6 +123,9 @@ void loop()
         if (isValidCommand) {
             if (cmd.type == SerialProtocol::CommandType::TEMP) {
                 currentTempTenths = static_cast<uint16_t>(constrain(lroundf(cmd.value), 0L, 999L));
+            } else if (cmd.type == SerialProtocol::CommandType::POWER) {
+                const bool powerOn = cmd.value != 0.0f;
+                renderer.setDisplayPower(powerOn);
             } else {
                 applyConfigCommand(cmd);
             }
@@ -132,6 +135,10 @@ void loop()
         }
 
         serialProtocol.clearNewCommand();
+    }
+
+    if (!renderer.isDisplayOn()) {
+        return;
     }
 
     uint16_t displayValue;

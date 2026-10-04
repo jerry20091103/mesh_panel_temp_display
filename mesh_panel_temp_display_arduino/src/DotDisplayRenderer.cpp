@@ -25,7 +25,7 @@ constexpr uint8_t kSuffixBitmaps[2][5] = {
 }
 
 DotDisplayRenderer::DotDisplayRenderer(U8G2 &display, const DotDisplayConfig &config)
-    : display_(display), config_(config)
+    : display_(display), config_(config), isDisplayOn_(true)
 {
 }
 
@@ -39,10 +39,31 @@ void DotDisplayRenderer::begin()
     display_.begin();
     display_.setContrast(255);
     display_.setDrawColor(1);
+    isDisplayOn_ = true;
+}
+
+void DotDisplayRenderer::setDisplayPower(bool on)
+{
+    isDisplayOn_ = on;
+    if (on) {
+        display_.setPowerSave(0);
+    } else {
+        display_.clear();
+        display_.setPowerSave(1);
+    }
+}
+
+bool DotDisplayRenderer::isDisplayOn() const
+{
+    return isDisplayOn_;
 }
 
 void DotDisplayRenderer::renderTenths(uint16_t tenths)
 {
+    if (!isDisplayOn_) {
+        return;
+    }
+
     display_.clearBuffer();
     if (config_.invertDisplay) {
         display_.setDrawColor(1);

@@ -7,6 +7,7 @@ The Mesh Panel Temperature Display is a mini hardware display designed to show t
 - **Customizable Display:** Support for 2, 3, or 4 digit displays with an optional unit suffix (C/F).
 - **Customizable Dot Pattern:** Configure dot size and spacing to match specific mesh panel designs.
 - **Real-time Monitoring:** Seamless integration with PC hardware to display CPU, GPU, or combined maximum temperatures.
+- **Automatic Power Management:** Turns the OLED display off completely when the PC goes to sleep or powers off, and automatically turns it back on upon wake or boot.
 - **Easy Communication:** Simple, robust USB serial communication between the PC application and the Arduino-based hardware.
 
 ## Project Structure

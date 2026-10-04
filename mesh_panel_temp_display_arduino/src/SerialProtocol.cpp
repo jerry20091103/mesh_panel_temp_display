@@ -299,6 +299,18 @@ SerialProtocol::Command SerialProtocol::parseLine(const char *line)
         return Command(CommandType::INVERT, value);
     }
 
+    if (strncmp(line, "POWER:", 6) == 0) {
+        const char *valueStr = line + 6;
+        float value = 0.0f;
+        if (!parseFloatValue(valueStr, value)) {
+            sendDebug(F("Invalid POWER command"), valueStr);
+            return Command(CommandType::INVALID, 0.0f);
+        }
+
+        sendDebug(F("Parsed POWER command"), valueStr);
+        return Command(CommandType::POWER, value);
+    }
+
     // Unknown command format
     sendDebug(F("Unknown command"), line);
     return Command(CommandType::INVALID, 0.0f);

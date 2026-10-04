@@ -23,6 +23,7 @@ public:
         DIGIT_COUNT,     ///< Digit count update: DIGITCOUNT:3
         UNIT_SUFFIX,     ///< Unit suffix update: SUFFIX:C
         INVERT,          ///< Invert display update: INVERT:0 or INVERT:1
+        POWER,           ///< Display power update: POWER:0 or POWER:1
         INVALID          ///< Unrecognized command
     };
 

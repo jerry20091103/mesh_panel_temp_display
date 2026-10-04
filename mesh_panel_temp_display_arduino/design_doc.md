@@ -57,6 +57,7 @@ The display is powered by a MCU with Arduino that reads the temperature data fro
 - `DIGITCOUNT:N` - Set the digit count to 2, 3, or 4
 - `SUFFIX:C|F|` - Set the suffix to `C`, `F`, or blank
 - `INVERT:0|1` - Set the display to normal or inverted colors
+- `POWER:0|1` - Set the display power state (0 = turn off display completely/sleep mode, 1 = turn on display)
 
 **MCU Responses:**
 - `ACK:OK\n` - Command processed successfully; PC may send next command

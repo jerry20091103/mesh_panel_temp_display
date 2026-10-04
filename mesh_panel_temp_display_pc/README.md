@@ -6,6 +6,7 @@ A Windows tray utility that monitors your PC's hardware temperatures and transmi
 - **Tray Integration:** Runs in the system tray with a simple settings window.
 - **Real-time Updates:** Automatically refreshes temperature data (CPU, GPU, etc.) at a configurable interval.
 - **Configurable Display:** Easily adjust your display settings (number of digits, dot size, spacing, and inversion) via the app.
+- **Sleep & Power Management:** Automatically turns off the display when the PC enters sleep or shuts down, and restores it on wake or boot. Also includes manual display power controls in the UI and system tray.
 - **Auto-Discovery:** Automatically detects the Arduino connected via USB.
 
 ## Prerequisites
@@ -51,4 +52,4 @@ Before running the application, you must set up the system monitor:
 - **Serial Protocol:** Uses 9600 baud with an ACK handshake.
 - **Ports:** Automatically detects Arduino Micro (VID/PID) or matches by serial name.
 - **Configuration:** User settings are saved in `%APPDATA%/MeshPanelTempDisplay/settings.json`.
-; keep its web server enabled while the PC app is running.
+- **LibreHardwareMonitor:** Keep its web server enabled while the PC app is running if using LHM sensor sources.
